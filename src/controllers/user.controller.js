@@ -151,8 +151,8 @@ const logoutUser = asyncHandler(async(req, res) => {
     User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: undefined
+            $unset: { // which field i want empty just pass in unset operator and do flag 1
+                refreshToken: 1
             }
         },
         {
@@ -201,15 +201,15 @@ const refreshAccessToken = asyncHandler(async(req, res) => {
             httpOnly: true,
             secure: true 
         }
-        const {accessToken, newRefreshToken} = await generateAccessAndRefreshToken(user._id)
-        // here sir has missed to update refreshToken in db
+        const {accessToken, refreshToken} = await generateAccessAndRefreshToken(user._id)
+        
         return res
         .status(200)
         .cookie("accessToken", accessToken, options)
-        .cookie("refreshToken", newRefreshToken, options)
+        .cookie("refreshToken", refreshToken, options)
         .json(new ApiResponse(
             200,
-            {accessToken, refreshToken: newRefreshToken},
+            {accessToken, refreshToken},
             "Access Token Refreshed successfully"
         ))
     } catch (error) {
@@ -342,18 +342,18 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
 const getUserChannelProfile = asyncHandler(async(req, res) => {
     const {username} = req.params
 
-    if(!username?.trim()){
+    if (!username?.trim()) {
         throw new ApiError(400, "username is missing")
     }
-    // here we find user from database using match aggregate function and then apply further multiple aggregation
+
     const channel = await User.aggregate([
         {
-            $match :{
+            $match: {
                 username: username?.toLowerCase()
             }
         },
         {
-            $lookup:{ // count those subscribers(users) where channel is user // after this pipeline we get list(array or objects) of subscribers 
+            $lookup: {
                 from: "subscriptions",
                 localField: "_id",
                 foreignField: "channel",
@@ -361,7 +361,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
             }
         },
         {
-            $lookup:{ // count those Channels(users) where subscriber is user // after this pipeline we get list(array or objects) of channels
+            $lookup: {
                 from: "subscriptions",
                 localField: "_id",
                 foreignField: "subscriber",
@@ -376,16 +376,18 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 channelsSubscribedToCount: {
                     $size: "$subscribedTo"
                 },
-                isSubscribed: { // check wether you are in subscribers list or not
-                    $cond: {$in: [req.user?._id, "$subscribers.subscriber"]},
-                    then: true,
-                    else: false
+                isSubscribed: {
+                    $cond: {
+                        if: {$in: [req.user?._id, "$subscribers.subscriber"]},
+                        then: true,
+                        else: false
+                    }
                 }
             }
         },
         {
-            $project: { // here we write those field which we want to send you(requesting user)
-                fullname: 1,
+            $project: {
+                fullName: 1,
                 username: 1,
                 subscribersCount: 1,
                 channelsSubscribedToCount: 1,
@@ -393,24 +395,22 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
                 avatar: 1,
                 coverImage: 1,
                 email: 1
+
             }
         }
     ])
 
-    if(!channel?.length){
+    if (!channel?.length) {
         throw new ApiError(404, "channel does not exists")
     }
 
     return res
     .status(200)
     .json(
-        new ApiResponse(
-            200, 
-            channel[0],
-            "User channel fetched successfully"
-        )
+        new ApiResponse(200, channel[0], "User channel fetched successfully")
     )
 })
+
 
 const getWatchHistory = asyncHandler(async(req, res) => {
     const user = await User.aggregate([
