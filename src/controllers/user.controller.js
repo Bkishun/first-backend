@@ -3,7 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import {User} from "../models/user.model.js"
 import {uploadOnCloudinary} from "../utils/cloudinary.js"
 import { ApiResponse } from "../utils/ApiResponse.js";
-import jwt from "jsonwebtoken"
+import jwt from "jsonwebtoken" 
 import mongoose from "mongoose";
 
 const generateAccessAndRefreshToken = async(userId) => {
@@ -27,7 +27,7 @@ const registerUser = asyncHandler(async(req, res) => {
     // console.log("email: ", email)
 
     if(
-        [fullname, email, username, password].some((field) => field?.trim() === "")
+        [fullname, email, username, password].some((field) => !field || field.trim() === "")
     ){
         throw new ApiError(400, "All fields are compelsory")
     }
