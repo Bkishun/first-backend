@@ -6,6 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { Video } from "../models/video.model.js";
 import { Like } from "../models/like.model.js";
 import { User } from "../models/user.model.js";
+import { Comment } from "../models/comment.model.js";
 
 
 const publishAVideo = asyncHandler(async(req, res) => {
@@ -171,11 +172,18 @@ const getVideoById = asyncHandler(async (req, res) => {
     console.log(videoId)
     //TODO: get video by id
 
-    // if(!videoId){
-    //     throw new ApiError(400, "missing videoId")
-    // }
+    if(videoId.trim() === ""){
+        throw new ApiError(400, "missing video id")
+    }
+
     if(!isValidObjectId(videoId)){
         throw new ApiError(404, "invalid videoId")
+    }
+
+    const temp = await Video.findById(videoId)
+
+    if(!temp){
+        throw new ApiError(404, "video not found")
     }
 
     const video = await Video.aggregate([
@@ -362,9 +370,10 @@ const updateVideo = asyncHandler(async (req, res) => {
     const {title, description} = req.body
 
     //TODO: update video details like title, description, thumbnail
-    if(!videoId){
-        throw new ApiError(403, "missing video Id")
+    if(videoId.trim() === ""){
+        throw new ApiError(400, "missing video id")
     }
+
     if(!isValidObjectId(videoId)){
         throw new ApiError(400, " invalid videoId" )
     }
@@ -401,14 +410,13 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
-    //TODO: delete video
-
-    if(!videoId){
-        throw new ApiError(400, "videoId is missing")
+    
+    if(videoId.trim() === ""){
+        throw new ApiError(400, "missing video id")
     }
 
     if(!isValidObjectId(videoId)){
-        throw new ApiError( 400, "Invalid videoId")
+        throw new ApiError(400, "invalid videoId")
     }
 
     const video = await Video.findById(videoId)
@@ -442,8 +450,8 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     
-    if(!videoId){
-        throw new ApiError(400, "videoId is missing")
+    if(videoId.trim() === ""){
+        throw new ApiError(400, "missing video id")
     }
 
     if(!isValidObjectId(videoId)){
