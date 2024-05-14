@@ -210,39 +210,39 @@ const getVideoById = asyncHandler(async (req, res) => {
                 foreignField: "video",
                 as: "comments",
 
-                pipeline: [
-                    {
-                        $lookup: {
-                            from: "users",
-                            localField: "owner",
-                            foreignField: "_id",
-                            as: "owner",
-                            pipeline: [
-                                {
-                                    $project: {
-                                        username:1
-                                    }
-                                }
-                            ]
-                        }
-                    },
+                // pipeline: [
+                //     {
+                //         $lookup: {
+                //             from: "users",
+                //             localField: "owner",
+                //             foreignField: "_id",
+                //             as: "owner",
+                //             pipeline: [
+                //                 {
+                //                     $project: {
+                //                         username:1
+                //                     }
+                //                 }
+                //             ]
+                //         }
+                //     },
 
-                    {
-                        $addFields: {
-                            owner: {
-                                $first: "$owner"
-                            }
-                        }
-                    },
-                    {
-                        $project: {
-                            content:1,
-                            owner: 1,
-                            createdAt: 1,
-                            updatedAt: 1
-                        }
-                    }
-                ]
+                //     {
+                //         $addFields: {
+                //             owner: {
+                //                 $first: "$owner"
+                //             }
+                //         }
+                //     },
+                //     {
+                //         $project: {
+                //             content:1,
+                //             owner: 1,
+                //             createdAt: 1,
+                //             updatedAt: 1
+                //         }
+                //     }
+                // ]
             }
         },
         // pipeline for fetching owner detail of that video
@@ -325,7 +325,6 @@ const getVideoById = asyncHandler(async (req, res) => {
                 views: 1,
                 isPublished:1,
                 likecount: 1,
-                comments: 1,
                 commentsCount: 1,
                 owner: 1,
                 createdAt: 1,
@@ -462,6 +461,10 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
 
     if(!video){
         throw new ApiError(404, "video not found")
+    }
+
+    if(req.user?._id.toString() !== video.owner.toString()){
+        throw new ApiError(400, "You are not allowed to change publish status")
     }
 
     const flag  = video?.isPublished
